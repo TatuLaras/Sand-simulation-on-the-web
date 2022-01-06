@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Sand</title>
+        <style>
+            body {
+                margin: 0;
+            }
+
+            canvas {
+                width: 100%;
+                image-rendering: pixelated;
+            }
+        </style>
+    </head>
+    <body>
+        <button onclick="selectedItem = 0;">Delete</button>
+        <button onclick="selectedItem = 1;">Sand</button>
+        <button onclick="selectedItem = 2;">Water</button>
+        <button onclick="selectedItem = 3;">Wood</button>
+
+        <script>
+            const canvasWidth = 300;
+            const canvasHeight = 150;
+
+            const canvas = document.createElement('canvas');
+            document.querySelector('body').appendChild(canvas);
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+
+            // *** Logic ***
+            var gameArray = new Array(canvasWidth * canvasHeight).fill(0);
+
+            var mouseHeld = false;
+
+            // 1 = sand
+            // 2 = water
+            // 2 = wood
+            var selectedItem = 1;
+            var mouseX = 0;
+            var mouseY = 0;
+
+            canvas.onmousedown = () => {
+                mouseHeld = true;
+            };
+            canvas.onmouseup = () => {
+                mouseHeld = false;
+            };
+
+            onmousemove = (e) => {
+                const canvasRect = canvas.getBoundingClientRect();
+                mouseX = Math.floor(
+                    (e.clientX - canvasRect.left) * (canvasWidth / canvasRect.width)
+                );
+                mouseY = Math.floor(
+                    (e.clientY - canvasRect.top) * (canvasHeight / canvasRect.height)
+                );
+            };
+
+            const simulate = () => {
+                // Place item on cursor
+                if (mouseHeld == true) {
+                    let index = mouseY * canvasWidth + mouseX;
+                    gameArray[index] = selectedItem;
+
+                    // wood
+                    if (selectedItem == 3 || selectedItem == 0) {
+                        gameArray[index + 1] = selectedItem;
+                        gameArray[index - 1] = selectedItem;
+                        gameArray[index + canvasWidth] = selectedItem;
+                        gameArray[index - canvasWidth] = selectedItem;
+                    }
+                }
+
+                let copyArray = JSON.parse(JSON.stringify(gameArray));
+                copyArray.forEach((p, i) => {
+                    let x = i % canvasWidth;
+                    let y = Math.floor(i / canvasWidth);
+
+                    if (p == 1) {
+                        let empty = gameArray[i] == 2 ? 2 : 0;
+
+                        // Sand
+                        if (
+                            // If cell below is empty, move there
+                            gameArray[i + canvasWidth] == 0 &&
+                            i + canvasWidth <= canvasWidth * canvasHeight
+                        ) {
+                            gameArray[i] = empty;
+                            gameArray[i + canvasWidth] = 1;
+                        } else if (
+                            // If cell below and to the right is empty, move there
+                            gameArray[i + canvasWidth + 1] == 0 &&
+                            i + canvasWidth + 1 <= canvasWidth * canvasHeight
+                        ) {
+                            gameArray[i] = empty;
+                            gameArray[i + canvasWidth + 1] = 1;
+                        } else if (
+                            // If cell below and to the left is empty, move there
+                            gameArray[i + canvasWidth - 1] == 0 &&
+                            i + canvasWidth - 1 <= canvasWidth * canvasHeight
+                        ) {
+                            gameArray[i] = empty;
+                            gameArray[i + canvasWidth - 1] = 1;
+                        }
+                    } else if (p == 2) {
+                        // Water
+                        if (
+                            // If cell below is empty, move there
+                            gameArray[i + canvasWidth] == 0 &&
+                            i + canvasWidth <= canvasWidth * canvasHeight
+                        ) {
+                            gameArray[i] = 0;
+                            gameArray[i + canvasWidth] = 2;
+                        } else if (
+                            // If cell below and to the right is empty, move there
+                            gameArray[i + canvasWidth + 1] == 0 &&
+                            i + canvasWidth + 1 <= canvasWidth * canvasHeight
+                        ) {
+                            gameArray[i] = 0;
+                            gameArray[i + canvasWidth + 1] = 2;
+                        } else if (
+                            // If cell below and to the left is empty, move there
+                            gameArray[i + canvasWidth - 1] == 0 &&
+                            i + canvasWidth - 1 <= canvasWidth * canvasHeight
+                        ) {
+                            gameArray[i] = 0;
+                            gameArray[i + canvasWidth - 1] = 2;
+                        } else if (gameArray[i + 1] == 0 && i + 1 <= canvasWidth * canvasHeight) {
+                            // If cell to the right is empty, move there
+                            gameArray[i] = 0;
+                            gameArray[i + 1] = 2;
+                        } else if (gameArray[i - 1] == 0 && i - 1 <= canvasWidth * canvasHeight) {
+                            // If cell to the left is empty, move there
+                            gameArray[i] = 0;
+                            gameArray[i - 1] = 2;
+                        }
+                    }
+                });
+            };
+
+            setInterval(simulate, 1000 / 240);
+
+            // *** Rendering ***
+
+            const ctx = canvas.getContext('2d');
+            const canvasData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+
+            const randInt = (min, max) => {
+                return min + Math.floor(Math.random() * (min + max));
+            };
+
+            const drawPixel = (x, y, r, g, b, a) => {
+                var index = (x + y * canvasWidth) * 4;
+
+                canvasData.data[index + 0] = r;
+                canvasData.data[index + 1] = g;
+                canvasData.data[index + 2] = b;
+                canvasData.data[index + 3] = a;
+            };
+
+            const drawLoop = () => {
+                gameArray.forEach((p, i) => {
+                    let x = i % canvasWidth;
+                    let y = Math.floor(i / canvasWidth);
+
+                    if (p == 1) {
+                        // Sand
+                        drawPixel(x, y, 199, 160, 84, 255);
+                    } else if (p == 2) {
+                        // Water
+                        drawPixel(x, y, 0, 126, 255, 255);
+                    } else if (p == 3) {
+                        // Wood
+                        drawPixel(x, y, 78, 29, 0, 255);
+                    } else {
+                        // Nothing
+                        drawPixel(x, y, 255, 255, 255, 255);
+                    }
+                });
+
+                ctx.putImageData(canvasData, 0, 0);
+                window.requestAnimationFrame(drawLoop);
+            };
+
+            drawLoop();
+        </script>
+    </body>
+</html>
